@@ -53,7 +53,7 @@ async def analyze_uploaded_image(
         await out_file.write(file_bytes)
 
     # 3. Analyze image using AI (Gemini Flash VLM / OpenCV fallback)
-    analysis = analyze_civic_image(temp_path)
+    analysis = analyze_civic_image(temp_path, user_hint=file.filename)
     analysis["temp_image_name"] = unique_name
     return analysis
 

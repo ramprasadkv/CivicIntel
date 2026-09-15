@@ -3,468 +3,347 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CivicIntel – AI-Assisted Civic Issue Reporting & Verification System</title>
-  <meta name="description" content="Production-grade AI-assisted civic issue reporting, automatic department routing, and official 3-tier verification portal.">
-  
-  <!-- Google Fonts & Icons -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  
-  <!-- Leaflet CSS for Map Picker -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  
-  <!-- Main Stylesheet -->
-  <link rel="stylesheet" href="/static/css/style.css">
+  <title>CivicIntel - Civic Issue Portal</title>
+  <link rel="stylesheet" href="style.css">
 </head>
-<body class="dark-theme">
+<body>
 
-  <!-- TOP NAVIGATION BAR -->
-  <header class="navbar">
-    <div class="nav-container">
-      <div class="brand">
-        <div class="brand-icon">
-          <i class="fa-solid fa-shield-halved"></i>
-        </div>
-        <div class="brand-text">
-          <span class="logo-title">CivicIntel</span>
-          <span class="logo-subtitle">AI Civic Verification Portal</span>
-        </div>
-      </div>
+  <!-- HEADER & NAVIGATION -->
+  <header class="header">
+    <div class="brand">
+      <h1>🏛️ CivicIntel</h1>
+      <p>AI-Powered Civic Issue Reporting & Verification System</p>
+    </div>
 
-      <!-- Quick Demo Switcher -->
-      <div class="quick-demo-bar">
-        <span class="demo-label"><i class="fa-solid fa-bolt"></i> Quick Switch:</span>
-        <button class="btn-demo" onclick="Auth.quickLogin('9876543210', 'password123')"><i class="fa-solid fa-user"></i> Citizen</button>
-        <button class="btn-demo" onclick="Auth.quickLogin('9111111111', 'officer123')"><i class="fa-solid fa-user-shield"></i> GBA Officer</button>
-        <button class="btn-demo" onclick="Auth.quickLogin('9222222222', 'officer123')"><i class="fa-solid fa-faucet-drip"></i> BWSSB Officer</button>
-        <button class="btn-demo" onclick="Auth.quickLogin('9999999999', 'admin123')"><i class="fa-solid fa-user-gear"></i> Admin</button>
-      </div>
+    <!-- Quick Demo Accounts Switcher -->
+    <div class="quick-login">
+      <span>⚡ Quick Demo Login:</span>
+      <button onclick="quickLogin('9876543210', 'password123')">Citizen</button>
+      <button onclick="quickLogin('9111111111', 'officer123')">GBA Officer</button>
+      <button onclick="quickLogin('9222222222', 'officer123')">BWSSB Officer</button>
+      <button onclick="quickLogin('9999999999', 'admin123')">Admin</button>
+    </div>
 
-      <!-- User State & Navigation -->
-      <nav class="nav-links" id="navLinks">
-        <!-- Dynamic Links rendered via JS -->
-      </nav>
-
-      <div class="auth-box" id="authBox">
-        <!-- Auth buttons / User Profile Dropdown -->
-      </div>
+    <!-- Current User Info -->
+    <div id="userBar" class="user-bar">
+      <span id="userInfo">Not Logged In</span>
+      <button id="logoutBtn" onclick="logout()" style="display:none;">Logout</button>
     </div>
   </header>
 
-  <!-- MAIN CONTAINER -->
-  <main class="app-main">
-    
-    <!-- NOTIFICATION TOAST CONTAINER -->
-    <div id="toastContainer" class="toast-container"></div>
+  <!-- NAVIGATION TABS -->
+  <nav class="nav-tabs">
+    <button class="nav-btn active" id="btnAuth" onclick="showView('authView')">🔑 Login / Register</button>
+    <button class="nav-btn" id="btnCitizen" onclick="showView('citizenView')">📢 Report Issue</button>
+    <button class="nav-btn" id="btnTrack" onclick="showView('trackView')">🔍 Track Complaint</button>
+    <button class="nav-btn" id="btnOfficer" onclick="showView('officerView')">🛡️ Officer Queue</button>
+    <button class="nav-btn" id="btnAdmin" onclick="showView('adminView')">📊 Admin Dashboard</button>
+  </nav>
 
-    <!-- 1. AUTH MODAL / VIEW -->
-    <section id="authSection" class="view-section active">
-      <div class="auth-card-wrapper">
-        <div class="auth-card glass-panel">
-          <div class="auth-tabs">
-            <button class="auth-tab active" onclick="Auth.switchTab('login')"><i class="fa-solid fa-right-to-bracket"></i> Login</button>
-            <button class="auth-tab" onclick="Auth.switchTab('register')"><i class="fa-solid fa-user-plus"></i> Register</button>
-          </div>
+  <!-- NOTIFICATION / STATUS MESSAGE -->
+  <div id="alertBox" class="alert-box" style="display:none;"></div>
 
-          <!-- LOGIN FORM -->
-          <form id="loginForm" class="auth-form active" onsubmit="Auth.handleLogin(event)">
-            <div class="form-header">
-              <h2>Citizen & Official Sign In</h2>
-              <p>Enter your registered mobile number and password</p>
+  <main class="container">
+
+    <!-- 1. AUTH VIEW (LOGIN / REGISTER) -->
+    <section id="authView" class="view active">
+      <div class="grid-2">
+        <!-- LOGIN FORM -->
+        <div class="card">
+          <h2>Sign In</h2>
+          <form onsubmit="handleLogin(event)">
+            <div class="form-group">
+              <label>Mobile Number:</label>
+              <input type="tel" id="loginMobile" placeholder="e.g. 9876543210" required>
             </div>
             <div class="form-group">
-              <label for="loginMobile"><i class="fa-solid fa-phone"></i> Mobile Number</label>
-              <input type="tel" id="loginMobile" placeholder="e.g. 9876543210" required pattern="[0-9]{10,15}">
-            </div>
-            <div class="form-group">
-              <label for="loginPassword"><i class="fa-solid fa-lock"></i> Password</label>
+              <label>Password:</label>
               <input type="password" id="loginPassword" placeholder="••••••••" required>
             </div>
-            <button type="submit" class="btn btn-primary btn-block"><i class="fa-solid fa-arrow-right-to-bracket"></i> Login to Dashboard</button>
+            <button type="submit" class="btn btn-primary">Login</button>
           </form>
+        </div>
 
-          <!-- REGISTER FORM -->
-          <form id="registerForm" class="auth-form" onsubmit="Auth.handleRegister(event)">
-            <div class="form-header">
-              <h2>Create New Citizen Account</h2>
-              <p>One-time simple registration. Your info is securely saved.</p>
-            </div>
+        <!-- REGISTER FORM -->
+        <div class="card">
+          <h2>Create Citizen Account</h2>
+          <form onsubmit="handleRegister(event)">
             <div class="form-group">
-              <label for="regName"><i class="fa-solid fa-user"></i> Full Name</label>
+              <label>Full Name:</label>
               <input type="text" id="regName" placeholder="e.g. Rajesh Kumar" required>
             </div>
             <div class="form-group">
-              <label for="regMobile"><i class="fa-solid fa-phone"></i> Mobile Number (Unique)</label>
-              <input type="tel" id="regMobile" placeholder="e.g. 9876543210" required pattern="[0-9]{10,15}">
+              <label>Mobile Number:</label>
+              <input type="tel" id="regMobile" placeholder="e.g. 9876543210" required>
             </div>
             <div class="form-group">
-              <label for="regPassword"><i class="fa-solid fa-lock"></i> Password</label>
-              <input type="password" id="regPassword" placeholder="Minimum 4 characters" required minlength="4">
+              <label>Password:</label>
+              <input type="password" id="regPassword" placeholder="••••••••" required>
             </div>
-            <button type="submit" class="btn btn-success btn-block"><i class="fa-solid fa-user-check"></i> Register Account</button>
+            <button type="submit" class="btn btn-secondary">Register Account</button>
           </form>
-
         </div>
       </div>
     </section>
 
-    <!-- 2. CITIZEN DASHBOARD -->
-    <section id="citizenDashboard" class="view-section">
-      <div class="dashboard-header glass-panel">
-        <div class="welcome-box">
-          <h1 id="welcomeUser">Welcome Citizen</h1>
-          <p id="welcomeUserSub">Report civic issues seamlessly with zero departmental confusion.</p>
+    <!-- 2. CITIZEN VIEW (REPORT ISSUE) -->
+    <section id="citizenView" class="view">
+      <div class="card">
+        <h2>Submit a New Civic Complaint</h2>
+        
+        <!-- Step 1: Upload Photo -->
+        <div class="step-box">
+          <h3>Step 1: Upload Evidence Photo</h3>
+          <input type="file" id="civicImage" accept="image/*" onchange="previewSelectedImage()">
+          <div id="imagePreviewContainer" style="margin-top:10px; display:none;">
+            <img id="imagePreview" src="" alt="Preview" style="max-height:180px; border-radius:6px; border:1px solid #ccc;">
+          </div>
+          <button type="button" class="btn btn-primary" onclick="analyzeImage()" style="margin-top:10px;">🤖 Analyze Photo with AI</button>
         </div>
-        <div class="trust-badge-box" id="trustBadgeBox">
-          <!-- Rendered via JS -->
+
+        <!-- AI Analysis Result Card -->
+        <div id="aiResultCard" class="card result-card" style="display:none; background:#eef6ff; border-left:5px solid #2563eb;">
+          <h3>AI Classification Result</h3>
+          <p><strong>Department:</strong> <span id="aiDept">-</span></p>
+          <p><strong>Category:</strong> <span id="aiCategory">-</span></p>
+          <p><strong>AI Description:</strong> <span id="aiDesc">-</span></p>
+          <p><strong>Confidence:</strong> <span id="aiConfidence">-</span></p>
         </div>
-      </div>
 
-      <!-- CITIZEN TABS -->
-      <div class="tab-navigation">
-        <button class="dash-tab active" onclick="Citizen.switchTab('newReport')"><i class="fa-solid fa-plus-circle"></i> Report New Issue</button>
-        <button class="dash-tab" onclick="Citizen.switchTab('track')"><i class="fa-solid fa-magnifying-glass-location"></i> Track Complaint</button>
-        <button class="dash-tab" onclick="Citizen.switchTab('history')"><i class="fa-solid fa-clock-rotate-left"></i> Complaint History</button>
-        <button class="dash-tab" onclick="Citizen.switchTab('profile')"><i class="fa-solid fa-id-card"></i> My Profile</button>
-      </div>
-
-      <!-- CITIZEN TAB 1: REPORT NEW ISSUE -->
-      <div id="tabNewReport" class="dash-tab-content active">
-        <div class="report-workflow-grid">
-          
-          <!-- LEFT COLUMN: UPLOAD & LOCATION -->
-          <div class="card glass-panel">
-            <div class="card-header">
-              <h3><i class="fa-solid fa-camera"></i> Step 1: Upload Evidence & Location</h3>
-              <p>Simple 2-click submission. AI automatically detects the department & issue category.</p>
-            </div>
-            <div class="card-body">
-              
-              <!-- DROPZONE -->
-              <div class="upload-dropzone" id="dropzone" onclick="document.getElementById('fileInput').click()">
-                <input type="file" id="fileInput" accept="image/jpeg,image/png,image/webp" style="display:none" onchange="Citizen.handleFileSelect(event)">
-                <div class="dropzone-content" id="dropzoneContent">
-                  <i class="fa-solid fa-cloud-arrow-up dropzone-icon"></i>
-                  <h4>Click or Drag & Drop Civic Issue Photo</h4>
-                  <p>Supports JPG, PNG, WEBP (Max 10MB)</p>
-                </div>
-                <div id="imagePreviewBox" class="image-preview-box" style="display:none">
-                  <img id="previewImg" src="" alt="Uploaded Evidence">
-                  <button type="button" class="btn-remove-img" onclick="Citizen.resetUpload(event)"><i class="fa-solid fa-xmark"></i> Remove</button>
-                </div>
+        <!-- Step 2: Details & Location -->
+        <div id="reportFormSection" class="step-box" style="display:none; margin-top:20px;">
+          <h3>Step 2: Location & Additional Details</h3>
+          <form onsubmit="submitReport(event)">
+            <div class="form-group">
+              <label>Location Address / Landmark:</label>
+              <div class="flex-row">
+                <input type="text" id="locationAddress" placeholder="e.g. 5th Cross, Indiranagar, Bengaluru" required>
+                <button type="button" class="btn btn-secondary" onclick="detectGPS()">📍 Get GPS Location</button>
               </div>
-
-              <!-- GPS & MAP SELECTION -->
-              <div class="location-picker-box">
-                <div class="location-status-bar">
-                  <span><i class="fa-solid fa-location-dot"></i> GPS Location:</span>
-                  <span id="gpsStatusText" class="badge badge-info">Detecting automatically...</span>
-                </div>
-                <div class="form-group margin-top-sm">
-                  <input type="text" id="locationAddress" placeholder="Location details / address" readonly>
-                </div>
-                <div class="location-actions">
-                  <button type="button" class="btn btn-outline-sm" onclick="Citizen.detectGPS()"><i class="fa-solid fa-crosshairs"></i> Re-detect GPS</button>
-                  <button type="button" class="btn btn-outline-sm" onclick="Citizen.openMapModal()"><i class="fa-solid fa-map-location-dot"></i> Pick on Map</button>
-                </div>
-              </div>
-
-              <button id="btnAnalyzeImage" class="btn btn-primary btn-block margin-top-md" onclick="Citizen.analyzeImage()" disabled>
-                <i class="fa-solid fa-microchip"></i> Run AI Analysis Engine
-              </button>
-
             </div>
-          </div>
 
-          <!-- RIGHT COLUMN: AI PREVIEW & SUBMISSION -->
-          <div class="card glass-panel">
-            <div class="card-header">
-              <h3><i class="fa-solid fa-brain"></i> Step 2: AI Classification & Review</h3>
-              <p>Real-time vision model analysis result & text moderation guardrails.</p>
+            <div class="grid-2">
+              <div class="form-group">
+                <label>Latitude:</label>
+                <input type="number" step="any" id="latitude" placeholder="12.9716">
+              </div>
+              <div class="form-group">
+                <label>Longitude:</label>
+                <input type="number" step="any" id="longitude" placeholder="77.5946">
+              </div>
             </div>
-            <div class="card-body">
 
-              <div id="aiLoader" class="ai-loader-box" style="display:none">
-                <div class="spinner"></div>
-                <h4>Analyzing Image with Gemini Vision VLM...</h4>
-                <p>Detecting Department, Category & Structural Hazard Details</p>
-              </div>
-
-              <div id="aiResultBox" class="ai-result-box" style="display:none">
-                <div class="ai-badge-row">
-                  <div class="ai-dept-badge" id="aiDeptBadge">
-                    <!-- Dept Code & Name -->
-                  </div>
-                  <div class="ai-confidence-badge" id="aiConfidenceBadge">
-                    <!-- Confidence score -->
-                  </div>
-                </div>
-
-                <div class="ai-field">
-                  <label><i class="fa-solid fa-tag"></i> Detected Issue Category:</label>
-                  <div class="category-display" id="aiCategory">--</div>
-                </div>
-
-                <div class="ai-field">
-                  <label><i class="fa-solid fa-robot"></i> Generated AI Description:</label>
-                  <p id="aiDescriptionText" class="ai-desc-text">--</p>
-                </div>
-
-                <div class="ai-field">
-                  <label><i class="fa-solid fa-pen-to-square"></i> Your Complaint Description (Editable):</label>
-                  <textarea id="userDescription" rows="4" placeholder="You can edit or write your custom description here. (Moderation enforced)"></textarea>
-                  <span class="help-text">Protected by anti-abuse content filter. Hostile/spam text will be rejected.</span>
-                </div>
-
-                <button id="btnSubmitReport" class="btn btn-success btn-block margin-top-md" onclick="Citizen.submitFinalReport()">
-                  <i class="fa-solid fa-paper-plane"></i> Submit Verified Complaint
-                </button>
-
-              </div>
-
-              <div id="aiPlaceholder" class="ai-placeholder-box">
-                <i class="fa-solid fa-wand-magic-sparkles"></i>
-                <p>Upload a photo on the left and click "Run AI Analysis Engine" to generate dynamic complaint routing details.</p>
-              </div>
-
+            <div class="form-group">
+              <label>Your Description:</label>
+              <textarea id="userDescription" rows="3" placeholder="Describe the issue in detail..." required></textarea>
             </div>
-          </div>
 
+            <button type="submit" class="btn btn-success btn-large">🚀 Submit Complaint</button>
+          </form>
         </div>
       </div>
 
-      <!-- CITIZEN TAB 2: TRACK COMPLAINT -->
-      <div id="tabTrack" class="dash-tab-content">
-        <div class="card glass-panel">
-          <div class="card-header">
-            <h3><i class="fa-solid fa-magnifying-glass"></i> Real-time Complaint Tracking</h3>
-            <p>Track your reported issue through the official 3-tier verification pipeline.</p>
-          </div>
-          <div class="card-body">
-            <div class="track-input-bar">
-              <input type="text" id="trackInput" placeholder="Enter Complaint Tracking ID (e.g. CIV-2026-A1B2C)">
-              <button class="btn btn-primary" onclick="Citizen.trackById()"><i class="fa-solid fa-search"></i> Track Status</button>
-            </div>
-
-            <div id="trackResultContainer" class="margin-top-lg" style="display:none">
-              <!-- Rendered via JS -->
-            </div>
-          </div>
-        </div>
+      <!-- My Reports Table -->
+      <div class="card" style="margin-top:20px;">
+        <h2>My Submitted Complaints</h2>
+        <button class="btn btn-secondary" onclick="loadMyReports()">🔄 Refresh List</button>
+        <table class="data-table" style="margin-top:10px;">
+          <thead>
+            <tr>
+              <th>Tracking ID</th>
+              <th>Department</th>
+              <th>Category</th>
+              <th>Status</th>
+              <th>Submitted Date</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="myReportsTable">
+            <tr><td colspan="6">Loading complaints...</td></tr>
+          </tbody>
+        </table>
       </div>
-
-      <!-- CITIZEN TAB 3: COMPLAINT HISTORY -->
-      <div id="tabHistory" class="dash-tab-content">
-        <div class="card glass-panel">
-          <div class="card-header">
-            <h3><i class="fa-solid fa-clock-rotate-left"></i> My Complaint History</h3>
-            <p>List of all civic issue reports submitted from your account.</p>
-          </div>
-          <div class="card-body">
-            <div id="historyGrid" class="history-grid">
-              <!-- Rendered via JS -->
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- CITIZEN TAB 4: PROFILE -->
-      <div id="tabProfile" class="dash-tab-content">
-        <div class="card glass-panel">
-          <div class="card-header">
-            <h3><i class="fa-solid fa-id-card"></i> Citizen Profile & Account Trust Status</h3>
-          </div>
-          <div class="card-body" id="profileDetailsBox">
-            <!-- Rendered via JS -->
-          </div>
-        </div>
-      </div>
-
     </section>
 
-    <!-- 3. DEPARTMENT OFFICER DASHBOARD -->
-    <section id="officerDashboard" class="view-section">
-      <div class="dashboard-header glass-panel">
-        <div class="welcome-box">
-          <h1 id="officerTitle">Department Officer Portal</h1>
-          <p id="officerSub">Review AI-routed complaints, record verification call attempts, and execute field action.</p>
-        </div>
-        <div class="officer-filter-bar">
-          <select id="officerStatusFilter" onchange="Officer.loadQueue()">
+    <!-- 3. TRACK COMPLAINT VIEW -->
+    <section id="trackView" class="view">
+      <div class="card">
+        <h2>Track Complaint Status</h2>
+        <form onsubmit="handleTrackSearch(event)" class="flex-row">
+          <input type="text" id="trackInput" placeholder="Enter Tracking ID (e.g. CIV-2026-ABC12)" required>
+          <button type="submit" class="btn btn-primary">Track</button>
+        </form>
+      </div>
+
+      <div id="trackResult" class="card" style="display:none; margin-top:20px;">
+        <!-- Details populated via JS -->
+      </div>
+    </section>
+
+    <!-- 4. OFFICER QUEUE VIEW -->
+    <section id="officerView" class="view">
+      <div class="card">
+        <h2>Department Officer Complaint Queue</h2>
+        <div class="flex-row" style="margin-bottom:15px;">
+          <label>Filter Status:</label>
+          <select id="statusFilter" onchange="loadOfficerReports()">
             <option value="">All Statuses</option>
-            <option value="PENDING_VERIFICATION" selected>Pending Verification</option>
+            <option value="PENDING_VERIFICATION">Pending Verification</option>
             <option value="SITE_VISIT_REQUIRED">Site Visit Required</option>
             <option value="VERIFIED">Verified</option>
             <option value="RESOLVED">Resolved</option>
-            <option value="FAKE_REPORT">Fake Reports</option>
+            <option value="FAKE_REPORT">Fake Report</option>
           </select>
-          <button class="btn btn-outline-sm" onclick="Officer.loadQueue()"><i class="fa-solid fa-rotate"></i> Refresh</button>
+          <button class="btn btn-secondary" onclick="loadOfficerReports()">🔄 Refresh Queue</button>
         </div>
+
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Tracking ID</th>
+              <th>Citizen Details</th>
+              <th>Department</th>
+              <th>Category</th>
+              <th>Photo</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="officerTable">
+            <tr><td colspan="8">Log in as an Officer to view assigned complaints.</td></tr>
+          </tbody>
+        </table>
       </div>
 
-      <div class="queue-grid margin-top-md" id="officerQueueGrid">
-        <!-- Rendered via JS -->
+      <!-- Action Panel Modal / Card -->
+      <div id="officerActionCard" class="card" style="display:none; margin-top:20px; border-top:4px solid #2563eb;">
+        <h3 id="selectedReportTitle">Manage Complaint</h3>
+        
+        <div class="grid-2">
+          <!-- Call Verification Logger -->
+          <div class="step-box">
+            <h4>📞 Log Official Verification Call</h4>
+            <form onsubmit="handleLogCall(event)">
+              <div class="form-group">
+                <label>Call Attempt:</label>
+                <select id="callAttempt" required>
+                  <option value="1">Call Attempt 1</option>
+                  <option value="2">Call Attempt 2</option>
+                  <option value="3">Call Attempt 3</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Call Outcome:</label>
+                <select id="callStatus" required>
+                  <option value="ANSWERED">Answered (Verified Citizen)</option>
+                  <option value="UNANSWERED">Unanswered</option>
+                  <option value="BUSY">Line Busy</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Officer Call Notes:</label>
+                <input type="text" id="callNotes" placeholder="e.g. Spoke with citizen, issue confirmed.">
+              </div>
+              <button type="submit" class="btn btn-primary">Submit Call Log</button>
+            </form>
+          </div>
+
+          <!-- Status Transition Update -->
+          <div class="step-box">
+            <h4>📋 Update Status & Field Action</h4>
+            <form onsubmit="handleUpdateStatus(event)">
+              <div class="form-group">
+                <label>New Status:</label>
+                <select id="newStatus" required>
+                  <option value="VERIFIED">VERIFIED (Valid Issue)</option>
+                  <option value="SITE_VISIT_REQUIRED">SITE_VISIT_REQUIRED (Inspection needed)</option>
+                  <option value="RESOLVED">RESOLVED (Fix completed)</option>
+                  <option value="FAKE_REPORT">FAKE_REPORT (Confirmed Fraudulent)</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label>Status Change Remarks:</label>
+                <input type="text" id="statusRemarks" placeholder="e.g. Field inspection complete, team dispatched.">
+              </div>
+              <button type="submit" class="btn btn-success">Update Status</button>
+            </form>
+          </div>
+        </div>
       </div>
     </section>
 
-    <!-- 4. ADMIN DASHBOARD -->
-    <section id="adminDashboard" class="view-section">
-      <div class="dashboard-header glass-panel">
-        <div class="welcome-box">
-          <h1>System Admin Analytics</h1>
-          <p>Live database statistics, departmental workload distributions, and anti-abuse blacklisting audit.</p>
-        </div>
-        <button class="btn btn-outline-sm" onclick="Admin.loadDashboard()"><i class="fa-solid fa-rotate"></i> Refresh Live Data</button>
-      </div>
-
-      <!-- STAT CARDS ROW -->
-      <div class="kpi-grid margin-top-md">
-        <div class="kpi-card glass-panel">
-          <div class="kpi-icon icon-total"><i class="fa-solid fa-folder-open"></i></div>
-          <div class="kpi-data">
-            <span class="kpi-value" id="kpiTotal">0</span>
+    <!-- 5. ADMIN DASHBOARD VIEW -->
+    <section id="adminView" class="view">
+      <div class="card">
+        <h2>System Admin Analytics Dashboard</h2>
+        <button class="btn btn-secondary" onclick="loadAdminDashboard()">🔄 Refresh Analytics</button>
+        
+        <!-- KPI Metric Cards -->
+        <div class="grid-4" style="margin-top:15px;">
+          <div class="kpi-card">
+            <span class="kpi-num" id="kpiTotal">0</span>
             <span class="kpi-label">Total Complaints</span>
           </div>
-        </div>
-        <div class="kpi-card glass-panel">
-          <div class="kpi-icon icon-pending"><i class="fa-solid fa-hourglass-half"></i></div>
-          <div class="kpi-data">
-            <span class="kpi-value" id="kpiPending">0</span>
+          <div class="kpi-card">
+            <span class="kpi-num" id="kpiPending" style="color:#d97706;">0</span>
             <span class="kpi-label">Pending Verification</span>
           </div>
-        </div>
-        <div class="kpi-card glass-panel">
-          <div class="kpi-icon icon-visit"><i class="fa-solid fa-person-walking-luggage"></i></div>
-          <div class="kpi-data">
-            <span class="kpi-value" id="kpiVisit">0</span>
-            <span class="kpi-label">Site Visit Required</span>
+          <div class="kpi-card">
+            <span class="kpi-num" id="kpiVerified" style="color:#2563eb;">0</span>
+            <span class="kpi-label">Verified / Site Visit</span>
           </div>
-        </div>
-        <div class="kpi-card glass-panel">
-          <div class="kpi-icon icon-verified"><i class="fa-solid fa-circle-check"></i></div>
-          <div class="kpi-data">
-            <span class="kpi-value" id="kpiVerified">0</span>
-            <span class="kpi-label">Verified</span>
-          </div>
-        </div>
-        <div class="kpi-card glass-panel">
-          <div class="kpi-icon icon-resolved"><i class="fa-solid fa-square-check"></i></div>
-          <div class="kpi-data">
-            <span class="kpi-value" id="kpiResolved">0</span>
-            <span class="kpi-label">Resolved</span>
-          </div>
-        </div>
-        <div class="kpi-card glass-panel">
-          <div class="kpi-icon icon-fake"><i class="fa-solid fa-triangle-exclamation"></i></div>
-          <div class="kpi-data">
-            <span class="kpi-value" id="kpiFake">0</span>
-            <span class="kpi-label">Fake Reports</span>
-          </div>
-        </div>
-        <div class="kpi-card glass-panel">
-          <div class="kpi-icon icon-blacklisted"><i class="fa-solid fa-user-slash"></i></div>
-          <div class="kpi-data">
-            <span class="kpi-value" id="kpiBlacklisted">0</span>
-            <span class="kpi-label">Blacklisted Users</span>
+          <div class="kpi-card">
+            <span class="kpi-num" id="kpiResolved" style="color:#16a34a;">0</span>
+            <span class="kpi-label">Resolved Issues</span>
           </div>
         </div>
       </div>
 
-      <!-- CHARTS ROW -->
-      <div class="charts-grid margin-top-lg">
-        <div class="card glass-panel">
-          <div class="card-header">
-            <h3><i class="fa-solid fa-chart-pie"></i> Complaint Status Distribution</h3>
-          </div>
-          <div class="card-body chart-container">
-            <canvas id="statusDoughnutChart"></canvas>
-          </div>
-        </div>
-
-        <div class="card glass-panel">
-          <div class="card-header">
-            <h3><i class="fa-solid fa-chart-column"></i> Departmental Workload Analysis</h3>
-          </div>
-          <div class="card-body chart-container">
-            <canvas id="deptBarChart"></canvas>
-          </div>
-        </div>
+      <!-- Department Workload Table -->
+      <div class="card" style="margin-top:20px;">
+        <h3>Department Breakdown</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Dept Code</th>
+              <th>Department Name</th>
+              <th>Total</th>
+              <th>Pending</th>
+              <th>Verified</th>
+              <th>Resolved</th>
+              <th>Fake Reports</th>
+            </tr>
+          </thead>
+          <tbody id="deptStatsTable">
+            <tr><td colspan="7">Log in as Admin to view metrics.</td></tr>
+          </tbody>
+        </table>
       </div>
 
-      <!-- BLACKLISTED USERS AUDIT TABLE -->
-      <div class="card glass-panel margin-top-lg">
-        <div class="card-header">
-          <h3><i class="fa-solid fa-user-slash"></i> Blacklisted Users Audit & Controls</h3>
-          <p>Users restricted due to 3 confirmed fake report strikes.</p>
-        </div>
-        <div class="card-body">
-          <div class="table-responsive">
-            <table class="data-table">
-              <thead>
-                <tr>
-                  <th>User ID</th>
-                  <th>Name</th>
-                  <th>Mobile Number</th>
-                  <th>Fake Strikes</th>
-                  <th>Status Level</th>
-                  <th>Registration Date</th>
-                  <th>Action</th>
-                </tr>
-              </thead>
-              <tbody id="blacklistTableBody">
-                <!-- Rendered via JS -->
-              </tbody>
-            </table>
-          </div>
-        </div>
+      <!-- Blacklisted Users Table -->
+      <div class="card" style="margin-top:20px;">
+        <h3>Blacklisted Users (Anti-Abuse Audit)</h3>
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>User Name</th>
+              <th>Mobile Number</th>
+              <th>Fake Strikes</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="blacklistedUsersTable">
+            <tr><td colspan="6">No blacklisted users found.</td></tr>
+          </tbody>
+        </table>
       </div>
-
     </section>
 
   </main>
 
-  <!-- MODALS -->
-  <!-- 1. MAP PICKER MODAL -->
-  <div id="mapModal" class="modal-overlay">
-    <div class="modal-box glass-panel modal-lg">
-      <div class="modal-header">
-        <h3><i class="fa-solid fa-map-pin"></i> Select Issue Location on Map</h3>
-        <button class="modal-close" onclick="Citizen.closeMapModal()">&times;</button>
-      </div>
-      <div class="modal-body">
-        <div id="leafletMap" style="height: 400px; width: 100%; border-radius: 8px;"></div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-primary" onclick="Citizen.confirmMapLocation()"><i class="fa-solid fa-check"></i> Confirm Selected Location</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 2. OFFICER ACTION / VERIFICATION MODAL -->
-  <div id="officerModal" class="modal-overlay">
-    <div class="modal-box glass-panel modal-lg">
-      <div class="modal-header">
-        <h3 id="officerModalTitle"><i class="fa-solid fa-clipboard-check"></i> Officer Verification Center</h3>
-        <button class="modal-close" onclick="Officer.closeModal()">&times;</button>
-      </div>
-      <div class="modal-body" id="officerModalBody">
-        <!-- Rendered dynamically -->
-      </div>
-    </div>
-  </div>
-
-  <!-- External JS Libraries -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
-  <!-- Custom App Scripts -->
-  <script src="/static/js/config.js"></script>
-  <script src="/static/js/auth.js"></script>
-  <script src="/static/js/citizen.js"></script>
-  <script src="/static/js/officer.js"></script>
-  <script src="/static/js/admin.js"></script>
-  <script src="/static/js/app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>
