@@ -118,11 +118,8 @@ def create_report_alias(report_in: schemas.ReportCreate, db: Session = Depends(g
     return _format_report_out(report, db)
 # -------------------------------------------------------------------
 
-# Mount Frontend static directory
+# Mount Frontend static directory at root path
 FRONTEND_DIR = BASE_DIR.parent / "frontend"
 if FRONTEND_DIR.exists():
-    app.mount("/static", StaticFiles(directory=str(FRONTEND_DIR)), name="static")
+    app.mount("/", StaticFiles(directory=str(FRONTEND_DIR), html=True), name="frontend")
 
-    @app.get("/")
-    def read_root():
-        return FileResponse(FRONTEND_DIR / "index.html")
