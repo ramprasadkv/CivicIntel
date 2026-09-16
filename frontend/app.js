@@ -94,12 +94,37 @@ async function apiFetch(endpoint, options = {}) {
   if (authToken) {
     options.headers["Authorization"] = `Bearer ${authToken}`;
   }
-  
+
+  // If body is FormData, delete Content-Type header so browser automatically sets boundary
+  if (options.body instanceof FormData) {
+    delete options.headers["Content-Type"];
+    delete options.headers["content-type"];
+  }
+
   const response = await fetch(`${API_BASE}${endpoint}`, options);
-  const data = await response.json();
+
+  let data;
+  const contentType = response.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    try {
+      data = await response.json();
+    } catch (e) {
+      data = { detail: "Invalid JSON response from server" };
+    }
+  } else {
+    const text = await response.text();
+    data = { detail: text || `HTTP ${response.status} ${response.statusText}` };
+  }
 
   if (!response.ok) {
-    const errorMsg = data.detail || "Request failed";
+    let errorMsg = `Request failed (${response.status})`;
+    if (typeof data.detail === "string") {
+      errorMsg = data.detail;
+    } else if (Array.isArray(data.detail)) {
+      errorMsg = data.detail.map(err => `${err.loc ? err.loc.join("->") : ""}: ${err.msg}`).join("; ");
+    } else if (data.message) {
+      errorMsg = data.message;
+    }
     throw new Error(errorMsg);
   }
   return data;

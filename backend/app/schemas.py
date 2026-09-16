@@ -44,6 +44,8 @@ class AIAnalysisResult(BaseModel):
     confidence: float
     is_valid_civic_issue: bool
     rejection_reason: Optional[str] = None
+    temp_image_name: Optional[str] = None
+    image_url: Optional[str] = None
 
 # --- Report Schemas ---
 class ReportCreate(BaseModel):

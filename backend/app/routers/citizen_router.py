@@ -55,6 +55,7 @@ async def analyze_uploaded_image(
     # 3. Analyze image using AI (Gemini Flash VLM / OpenCV fallback)
     analysis = analyze_civic_image(temp_path, user_hint=file.filename)
     analysis["temp_image_name"] = unique_name
+    analysis["image_url"] = f"/uploads/{unique_name}"
     return analysis
 
 
