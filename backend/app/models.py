@@ -68,6 +68,10 @@ class Report(Base):
     department_id = Column(Integer, ForeignKey("departments.id"), nullable=False)
     officer_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     
+    linked_department_id = Column(Integer, ForeignKey("departments.id"), nullable=True)
+    linked_department_code = Column(String(20), nullable=True)
+    sub_category = Column(String(150), nullable=True)
+
     image_url = Column(String(255), nullable=False)
     latitude = Column(Float, nullable=True)
     longitude = Column(Float, nullable=True)
@@ -85,7 +89,8 @@ class Report(Base):
     # Relationships
     citizen = relationship("User", foreign_keys=[citizen_id], back_populates="reports")
     assigned_officer = relationship("User", foreign_keys=[officer_id], back_populates="assigned_reports")
-    department = relationship("Department", back_populates="reports")
+    department = relationship("Department", foreign_keys=[department_id], back_populates="reports")
+    linked_department = relationship("Department", foreign_keys=[linked_department_id])
     verification_logs = relationship("VerificationLog", back_populates="report", cascade="all, delete-orphan")
     status_history = relationship("StatusHistory", back_populates="report", cascade="all, delete-orphan")
 

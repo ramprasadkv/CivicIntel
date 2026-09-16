@@ -36,6 +36,9 @@ class UserOut(BaseModel):
 class AIAnalysisResult(BaseModel):
     department_code: str
     department_name: str
+    sub_category: Optional[str] = None
+    linked_department_code: Optional[str] = None
+    linked_department_name: Optional[str] = None
     category: str
     ai_description: str
     confidence: float
@@ -49,9 +52,11 @@ class ReportCreate(BaseModel):
     longitude: Optional[float] = None
     location_address: Optional[str] = "Location detected via GPS"
     department_code: str
+    sub_category: Optional[str] = None
+    linked_department_code: Optional[str] = None
     category: str
     ai_description: str
-    user_description: str
+    user_description: Optional[str] = ""
     ai_confidence: float
 
 class VerificationLogCreate(BaseModel):
@@ -95,6 +100,9 @@ class ReportOut(BaseModel):
     department_id: int
     department_code: str
     department_name: str
+    sub_category: Optional[str] = None
+    linked_department_code: Optional[str] = None
+    linked_department_name: Optional[str] = None
     image_url: str
     latitude: Optional[float] = None
     longitude: Optional[float] = None

@@ -290,9 +290,11 @@ def _analyze_with_advanced_cv(image_path: str, user_hint: Optional[str] = None) 
     elif skin_ratio > 0.14 and water_ratio < 0.03 and sludge_ratio < 0.05:
         scores["POLICE"] += 80.0
 
-    # 5. Determine Winning Department
+    # 5. Determine Winning Department & Linked Foreign Department
     best_dept = max(scores, key=scores.get)
     best_score = scores[best_dept]
+
+    from app.services.routing_service import resolve_linked_departments
 
     category_meta = {
         "GBA": ("Urban Infrastructure Hazard", "Pothole, asphalt surface crack, damaged footpath, or garbage accumulation identified."),
@@ -304,6 +306,12 @@ def _analyze_with_advanced_cv(image_path: str, user_hint: Optional[str] = None) 
     }
 
     category_title, desc_template = category_meta.get(best_dept, ("Civic Infrastructure Issue", "Civic issue detected in uploaded photo."))
+    
+    # Resolve Sub-category & Linked Foreign Department
+    sub_cat, linked_code = resolve_linked_departments(hint_text or category_title)
+    linked_info = get_department_by_code(linked_code) if linked_code else None
+
+    # Construct specific visual description
     ai_desc = f"{desc_template} (Visual Analysis: {width}x{height}px, Edge Density: {edge_density:.2f}, Illumination: {mean_brightness:.0f}/255)."
     
     dept_info = get_department_by_code(best_dept)
@@ -312,6 +320,9 @@ def _analyze_with_advanced_cv(image_path: str, user_hint: Optional[str] = None) 
     return {
         "department_code": best_dept,
         "department_name": dept_name,
+        "sub_category": sub_cat or "General Maintenance",
+        "linked_department_code": linked_code,
+        "linked_department_name": linked_info["name"] if linked_info else None,
         "category": category_title,
         "ai_description": ai_desc,
         "confidence": round(float(np.clip(0.85 + (best_score / 200.0), 0.82, 0.98)), 2),

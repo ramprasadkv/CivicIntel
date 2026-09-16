@@ -89,70 +89,37 @@
     <!-- 2. CITIZEN VIEW (REPORT ISSUE) -->
     <section id="citizenView" class="view">
       <div class="card">
-        <h2>Submit a New Civic Complaint</h2>
+        <h2>Submit a Civic Complaint (AI Automatic Routing)</h2>
+        <p style="color:#64748b; margin-bottom:1rem; font-size:0.9rem;">Upload a photo of the civic issue. AI will automatically identify the problem, detect your street location via GPS, and route the complaint to the responsible government department.</p>
         
-        <!-- Step 1: Upload Photo -->
-        <div class="step-box">
-          <h3>Step 1: Upload Evidence Photo</h3>
-          <input type="file" id="civicImage" accept="image/*" onchange="previewSelectedImage()">
-          <div id="imagePreviewContainer" style="margin-top:10px; display:none;">
-            <img id="imagePreview" src="" alt="Preview" style="max-height:180px; border-radius:6px; border:1px solid #ccc;">
-          </div>
-          <button type="button" class="btn btn-primary" onclick="analyzeImage()" style="margin-top:10px;">🤖 Analyze Photo with AI</button>
-        </div>
-
-        <!-- AI Analysis Result Card -->
-        <div id="aiResultCard" class="card result-card" style="display:none; background:#eef6ff; border-left:5px solid #2563eb;">
-          <h3>AI Classification Result</h3>
-          <p><strong>Department:</strong> <span id="aiDept">-</span></p>
-          <p><strong>Category:</strong> <span id="aiCategory">-</span></p>
-          <p><strong>AI Description:</strong> <span id="aiDesc">-</span></p>
-          <p><strong>Confidence:</strong> <span id="aiConfidence">-</span></p>
-        </div>
-
-        <!-- Step 2: Details & Location -->
-        <div id="reportFormSection" class="step-box" style="display:none; margin-top:20px;">
-          <h3>Step 2: Department Routing & Location</h3>
-          <form onsubmit="submitReport(event)">
+        <form onsubmit="handleSingleClickSubmit(event)">
+          <div class="step-box">
+            <h3>Upload Evidence Photo</h3>
+            <input type="file" id="civicImage" accept="image/*" onchange="previewSelectedImage()" required>
+            <div id="imagePreviewContainer" style="margin-top:10px; display:none;">
+              <img id="imagePreview" src="" alt="Preview" style="max-height:220px; border-radius:6px; border:1px solid #ccc;">
+            </div>
             
-            <div class="form-group">
-              <label>Target Department (Auto-Selected by AI):</label>
-              <select id="targetDepartment" required style="font-weight:600; background:#f0f7ff; color:#1e40af;">
-                <option value="BWSSB">💧 Water Supply & Sewerage Board (BWSSB)</option>
-                <option value="GBA">🏛️ Greater Bengaluru Authority (GBA) - Infrastructure</option>
-                <option value="BESCOM">⚡ Electrical Hazard (BESCOM)</option>
-                <option value="FIRE">🔥 Fire & Emergency Department</option>
-                <option value="POLICE">🚔 Public Safety & Law Enforcement (Police)</option>
-                <option value="MEDICAL">🚑 Medical & Emergency Services</option>
-              </select>
-            </div>
+            <!-- Hidden Location & Metadata Fields (Auto-filled by AI & GPS) -->
+            <input type="hidden" id="latitude">
+            <input type="hidden" id="longitude">
+            <input type="hidden" id="locationAddress">
+            <input type="hidden" id="userDescription">
 
-            <div class="form-group">
-              <label>Location Address / Landmark:</label>
-              <div class="flex-row">
-                <input type="text" id="locationAddress" placeholder="e.g. 5th Cross, Indiranagar, Bengaluru" required>
-                <button type="button" class="btn btn-secondary" onclick="detectGPS()">📍 Get GPS Location</button>
-              </div>
-            </div>
+            <button type="submit" id="btnSubmitPhoto" class="btn btn-primary btn-large" style="margin-top:15px; font-size:1.1rem;">🚀 Submit Photo</button>
+          </div>
+        </form>
 
-            <div class="grid-2">
-              <div class="form-group">
-                <label>Latitude:</label>
-                <input type="number" step="any" id="latitude" placeholder="12.9716">
-              </div>
-              <div class="form-group">
-                <label>Longitude:</label>
-                <input type="number" step="any" id="longitude" placeholder="77.5946">
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label>Complaint Description:</label>
-              <textarea id="userDescription" rows="3" placeholder="Describe the issue in detail..." required></textarea>
-            </div>
-
-            <button type="submit" class="btn btn-success btn-large">🚀 Submit Complaint</button>
-          </form>
+        <!-- AI Classification & Submission Result Card -->
+        <div id="aiResultCard" class="card result-card" style="display:none; background:#eef6ff; border-left:5px solid #2563eb; margin-top:20px;">
+          <h3 style="color:#1e40af;">🎉 Complaint Submitted & Routed Successfully</h3>
+          <p><strong>Tracking ID:</strong> <span id="resTrackingId" style="font-size:1.1rem; color:#2563eb; font-weight:bold;">-</span></p>
+          <p><strong>Primary Department:</strong> <span id="aiDept" style="font-weight:600;">-</span></p>
+          <p><strong>Sub-Category:</strong> <span id="aiSubCategory">-</span></p>
+          <p id="linkedDeptRow" style="display:none;"><strong>Linked Foreign Department:</strong> <span id="aiLinkedDept" style="color:#d97706; font-weight:600;">-</span></p>
+          <p><strong>Detected Address:</strong> <span id="aiAddress">-</span></p>
+          <p><strong>AI Visual Description:</strong> <span id="aiDesc">-</span></p>
+          <p><strong>Classification Confidence:</strong> <span id="aiConfidence">-</span></p>
         </div>
       </div>
 

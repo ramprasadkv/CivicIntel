@@ -79,11 +79,14 @@ def submit_report(
             detail=f"Content Moderation Warning: {'; '.join(issues)}"
         )
 
-    # 3. Resolve department ID
+    # 3. Resolve department ID and optional linked department ID
     dept = db.query(models.Department).filter(models.Department.code == report_in.department_code.upper()).first()
     if not dept:
-        # Fallback to GBA
         dept = db.query(models.Department).filter(models.Department.code == "GBA").first()
+
+    linked_dept = None
+    if report_in.linked_department_code:
+        linked_dept = db.query(models.Department).filter(models.Department.code == report_in.linked_department_code.upper()).first()
 
     # Move temp image to permanent image path
     temp_path = os.path.join(UPLOADS_DIR, report_in.temp_image_name)
@@ -106,13 +109,16 @@ def submit_report(
         tracking_id=tracking_id,
         citizen_id=current_user.id,
         department_id=dept.id,
+        linked_department_id=linked_dept.id if linked_dept else None,
+        linked_department_code=linked_dept.code if linked_dept else None,
+        sub_category=report_in.sub_category,
         image_url=image_url,
         latitude=report_in.latitude,
         longitude=report_in.longitude,
         location_address=report_in.location_address or "Location verified via GPS",
         category=report_in.category,
         ai_description=report_in.ai_description,
-        user_description=report_in.user_description,
+        user_description=report_in.user_description or report_in.ai_description,
         ai_confidence=report_in.ai_confidence,
         status=models.ReportStatus.PENDING_VERIFICATION
     )
@@ -168,6 +174,7 @@ def track_report(
 def _format_report_out(report: models.Report, db: Session) -> dict:
     citizen = report.citizen
     dept = report.department
+    linked_dept = report.linked_department
     
     logs = [
         schemas.VerificationLogOut(
@@ -201,6 +208,9 @@ def _format_report_out(report: models.Report, db: Session) -> dict:
         "department_id": report.department_id,
         "department_code": dept.code if dept else "GBA",
         "department_name": dept.name if dept else "Urban Infrastructure",
+        "sub_category": report.sub_category,
+        "linked_department_code": linked_dept.code if linked_dept else report.linked_department_code,
+        "linked_department_name": linked_dept.name if linked_dept else (report.linked_department_code or None),
         "image_url": report.image_url,
         "latitude": report.latitude,
         "longitude": report.longitude,

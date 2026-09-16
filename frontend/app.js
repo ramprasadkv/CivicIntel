@@ -209,139 +209,109 @@ function previewSelectedImage() {
   }
 }
 
-async function analyzeImage() {
+async function handleSingleClickSubmit(event) {
+  event.preventDefault();
   const fileInput = document.getElementById("civicImage");
   if (!fileInput.files || fileInput.files.length === 0) {
     showAlert("Please select an image file first.", "error");
     return;
   }
 
-  const formData = new FormData();
-  formData.append("file", fileInput.files[0]);
+  const btn = document.getElementById("btnSubmitPhoto");
+  btn.disabled = true;
+  btn.innerText = "⏳ AI Analyzing & Routing Complaint...";
 
   try {
-    showAlert("Analyzing image using AI Vision Model...", "info");
+    showAlert("1. Detecting GPS location & reverse geocoding address...", "info");
     
-    // Call AI analysis API
-    const endpoint = authToken ? "/api/citizen/analyze-image" : "/api/analyze";
-    const data = await apiFetch(endpoint, {
+    // 1. Auto-detect GPS & Street Address
+    let lat = 12.9716, lon = 77.5946;
+    let address = "Indiranagar, 100 Feet Road, Bengaluru, Karnataka 560038";
+
+    if ("geolocation" in navigator) {
+      try {
+        const pos = await new Promise((resolve, reject) => {
+          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 4000 });
+        });
+        lat = pos.coords.latitude.toFixed(6);
+        lon = pos.coords.longitude.toFixed(6);
+
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+        const geoData = await res.json();
+        if (geoData && geoData.display_name) {
+          address = geoData.display_name;
+        }
+      } catch (geoErr) {
+        address = `MG Road, Indiranagar, Bengaluru (GPS: ${lat}, ${lon})`;
+      }
+    }
+
+    showAlert("2. Running AI Vision Analysis & Department Taxonomy Mapping...", "info");
+
+    // 2. Upload and Analyze Image with AI
+    const formData = new FormData();
+    formData.append("file", fileInput.files[0]);
+
+    const analyzeEndpoint = authToken ? "/api/citizen/analyze-image" : "/api/analyze";
+    const analysis = await apiFetch(analyzeEndpoint, {
       method: "POST",
       body: formData
     });
 
-    currentAnalysis = data;
+    showAlert("3. Creating official complaint record & assigning officers...", "info");
 
-    // Display AI Results
-    document.getElementById("aiDept").innerText = `${data.department_name} (${data.department_code})`;
-    document.getElementById("aiCategory").innerText = data.category || "General";
-    document.getElementById("aiDesc").innerText = data.ai_description || "N/A";
-    document.getElementById("aiConfidence").innerText = `${Math.round((data.confidence || 0.9) * 100)}%`;
+    // 3. Auto-Submit Complaint to Primary & Linked Department
+    const submitPayload = {
+      temp_image_name: analysis.temp_image_name,
+      department_code: analysis.department_code,
+      sub_category: analysis.sub_category || "General Maintenance",
+      linked_department_code: analysis.linked_department_code || null,
+      category: analysis.category || "Civic Issue",
+      ai_description: analysis.ai_description || "",
+      user_description: `[Automated AI Report]: ${analysis.category} - ${analysis.ai_description}`,
+      latitude: parseFloat(lat),
+      longitude: parseFloat(lon),
+      location_address: address,
+      ai_confidence: analysis.confidence || 0.95
+    };
 
-    // PRE-SELECT DEPARTMENT DROPDOWN
-    const deptSelect = document.getElementById("targetDepartment");
-    if (deptSelect && data.department_code) {
-      deptSelect.value = data.department_code;
-    }
-
-    document.getElementById("aiResultCard").style.display = "block";
-    document.getElementById("reportFormSection").style.display = "block";
-
-    // AUTO-POPULATE DESCRIPTION & LOCATION (ZERO MANUAL TYPING REQUIRED)
-    document.getElementById("userDescription").value = `[AI Auto-Generated Report]: ${data.category} - ${data.ai_description}`;
-
-    // Auto-detect GPS & reverse geocode street address
-    detectGPSAndReverseGeocode();
-
-    showAlert("AI Image Analysis Complete! Address & details auto-detected.", "success");
-
-  } catch (error) {
-    showAlert(`AI Analysis Error: ${error.message}`, "error");
-  }
-}
-
-function detectGPSAndReverseGeocode() {
-  if ("geolocation" in navigator) {
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude.toFixed(6);
-        const lon = pos.coords.longitude.toFixed(6);
-        document.getElementById("latitude").value = lat;
-        document.getElementById("longitude").value = lon;
-        
-        try {
-          // OpenStreetMap Reverse Geocoding API for exact real address
-          const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
-          const geoData = await res.json();
-          if (geoData && geoData.display_name) {
-            document.getElementById("locationAddress").value = geoData.display_name;
-          } else {
-            document.getElementById("locationAddress").value = `GPS Verified Location (${lat}, ${lon})`;
-          }
-        } catch (e) {
-          document.getElementById("locationAddress").value = `MG Road, Bengaluru (GPS: ${lat}, ${lon})`;
-        }
-        showAlert("Exact street location auto-detected!", "success");
-      },
-      (err) => {
-        // Fallback default coordinates if browser location permission is denied
-        document.getElementById("latitude").value = "12.9716";
-        document.getElementById("longitude").value = "77.5946";
-        document.getElementById("locationAddress").value = "Indiranagar, 100 Feet Road, Bengaluru, Karnataka 560038";
-      }
-    );
-  } else {
-    document.getElementById("latitude").value = "12.9716";
-    document.getElementById("longitude").value = "77.5946";
-    document.getElementById("locationAddress").value = "Indiranagar, 100 Feet Road, Bengaluru, Karnataka 560038";
-  }
-}
-
-function detectGPS() {
-  detectGPSAndReverseGeocode();
-}
-
-async function submitReport(event) {
-  event.preventDefault();
-  if (!currentAnalysis) {
-    showAlert("Please upload and analyze an image with AI first.", "error");
-    return;
-  }
-
-  const selectedDept = document.getElementById("targetDepartment") ? document.getElementById("targetDepartment").value : currentAnalysis.department_code;
-
-  const payload = {
-    temp_image_name: currentAnalysis.temp_image_name,
-    department_code: selectedDept,
-    category: currentAnalysis.category || "Infrastructure",
-    ai_description: currentAnalysis.ai_description || "",
-    user_description: document.getElementById("userDescription").value.trim() || `Automated complaint: ${currentAnalysis.category}`,
-    latitude: parseFloat(document.getElementById("latitude").value) || 12.9716,
-    longitude: parseFloat(document.getElementById("longitude").value) || 77.5946,
-    location_address: document.getElementById("locationAddress").value.trim() || "Indiranagar, Bengaluru, Karnataka 560038",
-    ai_confidence: currentAnalysis.confidence || 0.9
-  };
-
-  try {
-    const data = await apiFetch("/api/citizen/submit-report", {
+    const submitEndpoint = authToken ? "/api/citizen/submit-report" : "/api/reports";
+    const reportData = await apiFetch(submitEndpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+      body: JSON.stringify(submitPayload)
     });
 
-    showAlert(`Complaint Submitted Successfully! Tracking ID: ${data.tracking_id}`, "success");
+    // 4. Render Submission Result Card
+    document.getElementById("resTrackingId").innerText = reportData.tracking_id;
+    document.getElementById("aiDept").innerText = `${reportData.department_name} (${reportData.department_code})`;
+    document.getElementById("aiSubCategory").innerText = reportData.sub_category || analysis.sub_category || "General";
     
-    // Reset Form
-    document.getElementById("civicImage").value = "";
-    document.getElementById("imagePreviewContainer").style.display = "none";
-    document.getElementById("aiResultCard").style.display = "none";
-    document.getElementById("reportFormSection").style.display = "none";
-    document.getElementById("userDescription").value = "";
-    currentAnalysis = null;
+    if (reportData.linked_department_code || analysis.linked_department_code) {
+      const linkedCode = reportData.linked_department_code || analysis.linked_department_code;
+      const linkedName = reportData.linked_department_name || analysis.linked_department_name || linkedCode;
+      document.getElementById("aiLinkedDept").innerText = `${linkedName} (${linkedCode})`;
+      document.getElementById("linkedDeptRow").style.display = "block";
+    } else {
+      document.getElementById("linkedDeptRow").style.display = "none";
+    }
+
+    document.getElementById("aiAddress").innerText = address;
+    document.getElementById("aiDesc").innerText = analysis.ai_description;
+    document.getElementById("aiConfidence").innerText = `${Math.round((analysis.confidence || 0.95) * 100)}%`;
+
+    document.getElementById("aiResultCard").style.display = "block";
+    document.getElementById("aiResultCard").scrollIntoView({ behavior: "smooth" });
+
+    showAlert(`🎉 Complaint Submitted & Routed Successfully! Tracking ID: ${reportData.tracking_id}`, "success");
 
     loadMyReports();
 
   } catch (error) {
     showAlert(`Submission Error: ${error.message}`, "error");
+  } finally {
+    btn.disabled = false;
+    btn.innerText = "🚀 Submit Photo";
   }
 }
 
@@ -408,13 +378,14 @@ async function quickTrack(trackingId) {
       <h3>Complaint Details: ${data.tracking_id}</h3>
       <div class="grid-2" style="margin-top:1rem;">
         <div>
-          <p><strong>Department:</strong> ${data.department_name} (${data.department_code})</p>
-          <p><strong>Category:</strong> ${data.category}</p>
+          <p><strong>Primary Department:</strong> ${data.department_name} (${data.department_code})</p>
+          <p><strong>Sub-Category:</strong> ${data.sub_category || "General Maintenance"}</p>
+          ${data.linked_department_code ? `<p><strong>Linked Foreign Department:</strong> <span style="color:#d97706; font-weight:600;">${data.linked_department_name || data.linked_department_code} (${data.linked_department_code})</span></p>` : ""}
+          <p><strong>Issue Title:</strong> ${data.category}</p>
           <p><strong>Current Status:</strong> <span class="badge badge-${data.status.toLowerCase().split('_')[0]}">${data.status}</span></p>
           <p><strong>Location:</strong> ${data.location_address}</p>
           <p><strong>Submitted By:</strong> ${data.citizen_name} (${data.citizen_mobile})</p>
-          <p><strong>User Description:</strong> ${data.user_description}</p>
-          <p><strong>AI Description:</strong> ${data.ai_description}</p>
+          <p><strong>AI Custom Description:</strong> ${data.ai_description}</p>
         </div>
         <div>
           <p><strong>Evidence Image:</strong></p>
