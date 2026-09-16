@@ -57,7 +57,7 @@ class Department(Base):
 
     # Relationships
     officers = relationship("User", back_populates="department")
-    reports = relationship("Report", back_populates="department")
+    reports = relationship("Report", foreign_keys="Report.department_id", back_populates="department")
 
 class Report(Base):
     __tablename__ = "reports"
