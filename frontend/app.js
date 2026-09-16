@@ -18,7 +18,6 @@ let selectedOfficerReportId = null; // Stores report ID selected for action in o
 document.addEventListener("DOMContentLoaded", () => {
   updateUserBar();
   if (authToken && currentUser) {
-    // Navigate based on role
     if (currentUser.role === "ADMIN") {
       showView("adminView");
     } else if (currentUser.role === "OFFICER") {
@@ -27,7 +26,7 @@ document.addEventListener("DOMContentLoaded", () => {
       showView("citizenView");
     }
   } else {
-    showView("authView");
+    showView("citizenView"); // Default to Citizen Issue Reporting on initial page load
   }
 });
 
