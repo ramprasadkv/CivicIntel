@@ -72,7 +72,9 @@ function showAlert(message, type = "info") {
   box.className = `alert-box alert-${type}`;
   box.innerText = message;
   box.style.display = "block";
-  setTimeout(() => { box.style.display = "none"; }, 4000);
+  if (window.alertTimer) clearTimeout(window.alertTimer);
+  const duration = (type === "error" || type === "success") ? 10000 : 4000;
+  window.alertTimer = setTimeout(() => { box.style.display = "none"; }, duration);
 }
 
 function updateUserBar() {
@@ -102,6 +104,15 @@ async function apiFetch(endpoint, options = {}) {
   }
 
   const response = await fetch(`${API_BASE}${endpoint}`, options);
+
+  if (response.status === 401 && authToken) {
+    // Clear stale session
+    authToken = null;
+    currentUser = null;
+    localStorage.removeItem("civic_token");
+    localStorage.removeItem("civic_user");
+    updateUserBar();
+  }
 
   let data;
   const contentType = response.headers.get("content-type") || "";
@@ -249,19 +260,27 @@ async function handleSingleClickSubmit(event) {
   try {
     showAlert("1. Detecting GPS location & reverse geocoding address...", "info");
     
-    // 1. Auto-detect GPS & Street Address
+    // 1. Auto-detect GPS & Street Address with 1.5s max timeout
     let lat = 12.9716, lon = 77.5946;
     let address = "Indiranagar, 100 Feet Road, Bengaluru, Karnataka 560038";
 
     if ("geolocation" in navigator) {
       try {
         const pos = await new Promise((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 4000 });
+          const timer = setTimeout(() => reject(new Error("GPS Timeout")), 1500);
+          navigator.geolocation.getCurrentPosition(
+            (p) => { clearTimeout(timer); resolve(p); },
+            (err) => { clearTimeout(timer); reject(err); },
+            { timeout: 1500, enableHighAccuracy: false }
+          );
         });
         lat = pos.coords.latitude.toFixed(6);
         lon = pos.coords.longitude.toFixed(6);
 
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+        const controller = new AbortController();
+        const fetchTimer = setTimeout(() => controller.abort(), 1500);
+        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`, { signal: controller.signal });
+        clearTimeout(fetchTimer);
         const geoData = await res.json();
         if (geoData && geoData.display_name) {
           address = geoData.display_name;
@@ -273,15 +292,26 @@ async function handleSingleClickSubmit(event) {
 
     showAlert("2. Running AI Vision Analysis & Department Taxonomy Mapping...", "info");
 
-    // 2. Upload and Analyze Image with AI
+    // 2. Upload and Analyze Image with AI (with automatic unauthenticated fallback)
     const formData = new FormData();
     formData.append("file", fileInput.files[0]);
 
-    const analyzeEndpoint = authToken ? "/api/citizen/analyze-image" : "/api/analyze";
-    const analysis = await apiFetch(analyzeEndpoint, {
-      method: "POST",
-      body: formData
-    });
+    let analysis;
+    try {
+      const analyzeEndpoint = authToken ? "/api/citizen/analyze-image" : "/api/analyze";
+      analysis = await apiFetch(analyzeEndpoint, { method: "POST", body: formData });
+    } catch (err) {
+      if (authToken) {
+        authToken = null;
+        currentUser = null;
+        localStorage.removeItem("civic_token");
+        localStorage.removeItem("civic_user");
+        updateUserBar();
+        analysis = await apiFetch("/api/analyze", { method: "POST", body: formData });
+      } else {
+        throw err;
+      }
+    }
 
     showAlert("3. Creating official complaint record & assigning officers...", "info");
 
@@ -300,12 +330,30 @@ async function handleSingleClickSubmit(event) {
       ai_confidence: analysis.confidence || 0.95
     };
 
-    const submitEndpoint = authToken ? "/api/citizen/submit-report" : "/api/reports";
-    const reportData = await apiFetch(submitEndpoint, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(submitPayload)
-    });
+    let reportData;
+    try {
+      const submitEndpoint = authToken ? "/api/citizen/submit-report" : "/api/reports";
+      reportData = await apiFetch(submitEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(submitPayload)
+      });
+    } catch (err) {
+      if (authToken) {
+        authToken = null;
+        currentUser = null;
+        localStorage.removeItem("civic_token");
+        localStorage.removeItem("civic_user");
+        updateUserBar();
+        reportData = await apiFetch("/api/reports", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(submitPayload)
+        });
+      } else {
+        throw err;
+      }
+    }
 
     // 4. Render Submission Result Card
     document.getElementById("resTrackingId").innerText = reportData.tracking_id;

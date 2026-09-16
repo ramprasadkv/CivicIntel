@@ -28,7 +28,7 @@ app = FastAPI(
 # Enable CORS for local development & cross-origin requests
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origin_regex=".*",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -88,6 +88,10 @@ def create_report_alias(report_in: schemas.ReportCreate, db: Session = Depends(g
     if not dept:
         dept = db.query(models.Department).filter(models.Department.code == "GBA").first()
 
+    linked_dept = None
+    if report_in.linked_department_code:
+        linked_dept = db.query(models.Department).filter(models.Department.code == report_in.linked_department_code.upper()).first()
+
     # Get or create default citizen user
     citizen = db.query(models.User).filter(models.User.role == "CITIZEN").first()
     citizen_id = citizen.id if citizen else 1
@@ -96,17 +100,31 @@ def create_report_alias(report_in: schemas.ReportCreate, db: Session = Depends(g
     random_code = uuid.uuid4().hex[:5].upper()
     tracking_id = f"CIV-{year}-{random_code}"
 
+    # Move temp image to permanent image path if exists
+    temp_path = os.path.join(UPLOADS_DIR, report_in.temp_image_name)
+    perm_name = f"report_{uuid.uuid4().hex[:12]}{os.path.splitext(report_in.temp_image_name)[1]}"
+    perm_path = os.path.join(UPLOADS_DIR, perm_name)
+    
+    if os.path.exists(temp_path):
+        os.rename(temp_path, perm_path)
+        image_url = f"/uploads/{perm_name}"
+    else:
+        image_url = f"/uploads/{report_in.temp_image_name}"
+
     report = models.Report(
         tracking_id=tracking_id,
         citizen_id=citizen_id,
         department_id=dept.id,
-        image_url=f"/uploads/{report_in.temp_image_name}",
+        linked_department_id=linked_dept.id if linked_dept else None,
+        linked_department_code=linked_dept.code if linked_dept else None,
+        sub_category=report_in.sub_category,
+        image_url=image_url,
         latitude=report_in.latitude,
         longitude=report_in.longitude,
         location_address=report_in.location_address or "Location verified via GPS",
         category=report_in.category,
         ai_description=report_in.ai_description,
-        user_description=report_in.user_description,
+        user_description=report_in.user_description or report_in.ai_description,
         ai_confidence=report_in.ai_confidence,
         status=models.ReportStatus.PENDING_VERIFICATION
     )
