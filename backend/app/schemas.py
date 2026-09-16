@@ -14,6 +14,10 @@ class UserLogin(BaseModel):
     mobile_number: str
     password: str
 
+class UserResetPassword(BaseModel):
+    mobile_number: str = Field(..., min_length=10, max_length=15)
+    new_password: str = Field(..., min_length=4)
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"

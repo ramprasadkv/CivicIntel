@@ -51,7 +51,7 @@
         <!-- LOGIN FORM -->
         <div class="card">
           <h2>Sign In</h2>
-          <form onsubmit="handleLogin(event)">
+          <form onsubmit="handleLogin(event); return false;">
             <div class="form-group">
               <label>Mobile Number:</label>
               <input type="tel" id="loginMobile" placeholder="e.g. 9876543210" required>
@@ -59,15 +59,35 @@
             <div class="form-group">
               <label>Password:</label>
               <input type="password" id="loginPassword" placeholder="••••••••" required>
+              <a href="#" onclick="toggleForgotPasswordCard(event)" style="font-size:0.85rem; color:#2563eb; text-decoration:none; display:block; margin-top:5px; text-align:right;">🔑 Forgot Password?</a>
             </div>
             <button type="submit" class="btn btn-primary">Login</button>
           </form>
+
+          <!-- FORGOT PASSWORD FORM (Hidden by default) -->
+          <div id="forgotPasswordCard" style="display:none; margin-top:15px; padding-top:15px; border-top:1px dashed #cbd5e1;">
+            <h3 style="color:#2563eb; margin-bottom:10px;">🔐 Reset Password</h3>
+            <form onsubmit="handleResetPassword(event); return false;">
+              <div class="form-group">
+                <label>Registered Mobile Number:</label>
+                <input type="tel" id="resetMobile" placeholder="e.g. 9876543210" required>
+              </div>
+              <div class="form-group">
+                <label>New Password:</label>
+                <input type="password" id="resetNewPassword" placeholder="Enter new password" required>
+              </div>
+              <div class="flex-row">
+                <button type="submit" class="btn btn-success">Reset Password</button>
+                <button type="button" class="btn btn-secondary" onclick="toggleForgotPasswordCard(event)">Cancel</button>
+              </div>
+            </form>
+          </div>
         </div>
 
         <!-- REGISTER FORM -->
         <div class="card">
           <h2>Create Citizen Account</h2>
-          <form onsubmit="handleRegister(event)">
+          <form onsubmit="handleRegister(event); return false;">
             <div class="form-group">
               <label>Full Name:</label>
               <input type="text" id="regName" placeholder="e.g. Rajesh Kumar" required>
@@ -92,7 +112,7 @@
         <h2>Submit a Civic Complaint (AI Automatic Routing)</h2>
         <p style="color:#64748b; margin-bottom:1rem; font-size:0.9rem;">Upload a photo of the civic issue. AI will automatically identify the problem, detect your street location via GPS, and route the complaint to the responsible government department.</p>
         
-        <form onsubmit="handleSingleClickSubmit(event)">
+        <form onsubmit="handleSingleClickSubmit(event); return false;">
           <div class="step-box">
             <h3>Upload Evidence Photo</h3>
             <input type="file" id="civicImage" accept="image/*" onchange="previewSelectedImage()" required>
@@ -113,6 +133,11 @@
         <!-- AI Classification & Submission Result Card -->
         <div id="aiResultCard" class="card result-card" style="display:none; background:#eef6ff; border-left:5px solid #2563eb; margin-top:20px;">
           <h3 style="color:#1e40af;">🎉 Complaint Submitted & Routed Successfully</h3>
+          
+          <div style="text-align:center; margin:15px 0;">
+            <img id="resImageDisplay" src="" alt="Analyzed Photo" style="max-height:260px; max-width:100%; border-radius:8px; border:2px solid #2563eb; box-shadow:0 4px 6px -1px rgba(0,0,0,0.1);">
+          </div>
+
           <p><strong>Tracking ID:</strong> <span id="resTrackingId" style="font-size:1.1rem; color:#2563eb; font-weight:bold;">-</span></p>
           <p><strong>Primary Department:</strong> <span id="aiDept" style="font-weight:600;">-</span></p>
           <p><strong>Sub-Category:</strong> <span id="aiSubCategory">-</span></p>

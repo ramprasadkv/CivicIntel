@@ -209,6 +209,40 @@ async function handleRegister(event) {
   }
 }
 
+function toggleForgotPasswordCard(event) {
+  if (event) event.preventDefault();
+  const card = document.getElementById("forgotPasswordCard");
+  if (card) {
+    card.style.display = (card.style.display === "none" || !card.style.display) ? "block" : "none";
+  }
+}
+
+async function handleResetPassword(event) {
+  if (event) event.preventDefault();
+  const mobile = document.getElementById("resetMobile").value.trim();
+  const newPassword = document.getElementById("resetNewPassword").value.trim();
+
+  if (!mobile || !newPassword) {
+    showAlert("Please enter your mobile number and new password.", "error");
+    return;
+  }
+
+  try {
+    const data = await apiFetch("/api/auth/reset-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mobile_number: mobile, new_password: newPassword })
+    });
+
+    showAlert(data.message || "Password reset successfully! Please log in with your new password.", "success");
+    toggleForgotPasswordCard(null);
+    document.getElementById("loginMobile").value = mobile;
+    document.getElementById("loginPassword").value = newPassword;
+  } catch (err) {
+    showAlert(`Reset Failed: ${err.message}`, "error");
+  }
+}
+
 function quickLogin(mobile, password) {
   document.getElementById("loginMobile").value = mobile;
   document.getElementById("loginPassword").value = password;
@@ -246,16 +280,23 @@ function previewSelectedImage() {
 }
 
 async function handleSingleClickSubmit(event) {
-  event.preventDefault();
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
   const fileInput = document.getElementById("civicImage");
   if (!fileInput.files || fileInput.files.length === 0) {
     showAlert("Please select an image file first.", "error");
-    return;
+    return false;
   }
 
   const btn = document.getElementById("btnSubmitPhoto");
   btn.disabled = true;
   btn.innerText = "⏳ AI Analyzing & Routing Complaint...";
+
+  // Cache preview image data URL before input reset
+  const previewImg = document.getElementById("imagePreview");
+  const currentPreviewData = previewImg ? previewImg.src : "";
 
   try {
     showAlert("1. Detecting GPS location & reverse geocoding address...", "info");
@@ -355,7 +396,16 @@ async function handleSingleClickSubmit(event) {
       }
     }
 
-    // 4. Render Submission Result Card
+    // 4. Render Submission Result Card & Display Analyzed Image
+    const resImg = document.getElementById("resImageDisplay");
+    if (resImg) {
+      if (reportData.image_url) {
+        resImg.src = reportData.image_url.startsWith("http") ? reportData.image_url : `${API_BASE}${reportData.image_url}`;
+      } else {
+        resImg.src = currentPreviewData;
+      }
+    }
+
     document.getElementById("resTrackingId").innerText = reportData.tracking_id;
     document.getElementById("aiDept").innerText = `${reportData.department_name} (${reportData.department_code})`;
     document.getElementById("aiSubCategory").innerText = reportData.sub_category || analysis.sub_category || "General";
@@ -376,6 +426,10 @@ async function handleSingleClickSubmit(event) {
     document.getElementById("aiResultCard").style.display = "block";
     document.getElementById("aiResultCard").scrollIntoView({ behavior: "smooth" });
 
+    // Reset upload form fields so user isn't left staring at the raw input
+    fileInput.value = "";
+    document.getElementById("imagePreviewContainer").style.display = "none";
+
     showAlert(`🎉 Complaint Submitted & Routed Successfully! Tracking ID: ${reportData.tracking_id}`, "success");
 
     loadMyReports();
@@ -386,6 +440,7 @@ async function handleSingleClickSubmit(event) {
     btn.disabled = false;
     btn.innerText = "🚀 Submit Photo";
   }
+  return false;
 }
 
 

@@ -58,3 +58,16 @@ def login(login_in: schemas.UserLogin, db: Session = Depends(get_db)):
 @router.get("/me", response_model=schemas.UserOut)
 def get_profile(current_user: models.User = Depends(get_current_user)):
     return current_user
+
+@router.post("/reset-password")
+def reset_password(reset_in: schemas.UserResetPassword, db: Session = Depends(get_db)):
+    user = db.query(models.User).filter(models.User.mobile_number == reset_in.mobile_number.strip()).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Mobile number not registered. Please create a new citizen account."
+        )
+
+    user.password_hash = get_password_hash(reset_in.new_password)
+    db.commit()
+    return {"message": "Password reset successfully. You can now login with your new password."}
