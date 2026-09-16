@@ -237,6 +237,12 @@ async function analyzeImage() {
     document.getElementById("aiDesc").innerText = data.ai_description || "N/A";
     document.getElementById("aiConfidence").innerText = `${Math.round((data.confidence || 0.9) * 100)}%`;
 
+    // PRE-SELECT DEPARTMENT DROPDOWN
+    const deptSelect = document.getElementById("targetDepartment");
+    if (deptSelect && data.department_code) {
+      deptSelect.value = data.department_code;
+    }
+
     document.getElementById("aiResultCard").style.display = "block";
     document.getElementById("reportFormSection").style.display = "block";
 
@@ -301,9 +307,11 @@ async function submitReport(event) {
     return;
   }
 
+  const selectedDept = document.getElementById("targetDepartment") ? document.getElementById("targetDepartment").value : currentAnalysis.department_code;
+
   const payload = {
     temp_image_name: currentAnalysis.temp_image_name,
-    department_code: currentAnalysis.department_code,
+    department_code: selectedDept,
     category: currentAnalysis.category || "Infrastructure",
     ai_description: currentAnalysis.ai_description || "",
     user_description: document.getElementById("userDescription").value.trim() || `Automated complaint: ${currentAnalysis.category}`,

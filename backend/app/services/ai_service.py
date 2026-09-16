@@ -296,7 +296,7 @@ def _analyze_with_advanced_cv(image_path: str, user_hint: Optional[str] = None) 
 
     category_meta = {
         "GBA": ("Urban Infrastructure Hazard", "Pothole, asphalt surface crack, damaged footpath, or garbage accumulation identified."),
-        "BWSSB": ("Water Supply & Sewerage Issue", "Water pipeline leakage, flooded surface waterlogging, or sewage drain overflow detected."),
+        "BWSSB": ("Water Supply & Sewerage Issue", "Active water pipeline leakage, flooded surface waterlogging, or sewage drain overflow detected."),
         "BESCOM": ("Electrical Utility Hazard", "High-density overhead utility cables, damaged electric pole, or exposed wiring hazard identified."),
         "FIRE": ("Fire & Thermal Hazard", "Active fire combustion flames, smoke plumes, or thermal hazard visual signature detected."),
         "POLICE": ("Public Safety & Physical Altercation", "Human figure confrontation / physical altercation detected. Escalated for police review."),

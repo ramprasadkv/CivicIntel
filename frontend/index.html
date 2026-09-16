@@ -112,8 +112,21 @@
 
         <!-- Step 2: Details & Location -->
         <div id="reportFormSection" class="step-box" style="display:none; margin-top:20px;">
-          <h3>Step 2: Location & Additional Details</h3>
+          <h3>Step 2: Department Routing & Location</h3>
           <form onsubmit="submitReport(event)">
+            
+            <div class="form-group">
+              <label>Target Department (Auto-Selected by AI):</label>
+              <select id="targetDepartment" required style="font-weight:600; background:#f0f7ff; color:#1e40af;">
+                <option value="BWSSB">💧 Water Supply & Sewerage Board (BWSSB)</option>
+                <option value="GBA">🏛️ Greater Bengaluru Authority (GBA) - Infrastructure</option>
+                <option value="BESCOM">⚡ Electrical Hazard (BESCOM)</option>
+                <option value="FIRE">🔥 Fire & Emergency Department</option>
+                <option value="POLICE">🚔 Public Safety & Law Enforcement (Police)</option>
+                <option value="MEDICAL">🚑 Medical & Emergency Services</option>
+              </select>
+            </div>
+
             <div class="form-group">
               <label>Location Address / Landmark:</label>
               <div class="flex-row">
@@ -134,7 +147,7 @@
             </div>
 
             <div class="form-group">
-              <label>Your Description:</label>
+              <label>Complaint Description:</label>
               <textarea id="userDescription" rows="3" placeholder="Describe the issue in detail..." required></textarea>
             </div>
 
