@@ -122,6 +122,13 @@ def _analyze_with_advanced_cv(image_path: str, user_hint: Optional[str] = None) 
     """
     cv_img = cv2.imread(image_path)
     if cv_img is None:
+        try:
+            pil_temp = Image.open(image_path).convert("RGB")
+            cv_img = cv2.cvtColor(np.array(pil_temp), cv2.COLOR_RGB2BGR)
+        except Exception:
+            cv_img = None
+
+    if cv_img is None:
         return {
             "department_code": "UNCLEAR",
             "department_name": "Unclear / Ignore",

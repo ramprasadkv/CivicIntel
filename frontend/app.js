@@ -3,8 +3,10 @@
    Simple, clean, and straightforward API integration with FastAPI Backend.
 */
 
-// API Base URL (Relative if served on same port, absolute if opened standalone)
-const API_BASE = window.location.origin.includes("8000") ? "" : "http://localhost:8000";
+// API Base URL (Dynamic host detection with fallback)
+const API_BASE = (window.location.origin && window.location.origin !== "null" && !window.location.origin.startsWith("file:")) 
+  ? window.location.origin 
+  : "http://127.0.0.1:8000";
 
 // Application State
 let authToken = localStorage.getItem("civic_token") || null;
@@ -298,6 +300,44 @@ function previewSelectedImage() {
   }
 }
 
+async function compressImageIfNeeded(file) {
+  return new Promise((resolve) => {
+    if (!file || file.size < 1 * 1024 * 1024) {
+      resolve(file);
+      return;
+    }
+    const img = new Image();
+    img.onload = () => {
+      const maxDim = 1600;
+      let w = img.width, h = img.height;
+      if (w > maxDim || h > maxDim) {
+        if (w > h) {
+          h = Math.round((h * maxDim) / w);
+          w = maxDim;
+        } else {
+          w = Math.round((w * maxDim) / h);
+          h = maxDim;
+        }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(img, 0, 0, w, h);
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const resizedFile = new File([blob], file.name || "photo.jpg", { type: "image/jpeg" });
+          resolve(resizedFile);
+        } else {
+          resolve(file);
+        }
+      }, "image/jpeg", 0.85);
+    };
+    img.onerror = () => resolve(file);
+    img.src = URL.createObjectURL(file);
+  });
+}
+
 async function handleSingleClickSubmit(event) {
   if (event) {
     event.preventDefault();
@@ -352,9 +392,11 @@ async function handleSingleClickSubmit(event) {
 
     showAlert("2. Running AI Vision Analysis & Department Taxonomy Mapping...", "info");
 
-    // 2. Upload and Analyze Image with AI (with automatic unauthenticated fallback)
+    // 2. Upload and Analyze Image with AI (with client-side optimization & fallback)
+    const rawFile = fileInput.files[0];
+    const fileToUpload = await compressImageIfNeeded(rawFile);
     const formData = new FormData();
-    formData.append("file", fileInput.files[0]);
+    formData.append("file", fileToUpload);
 
     let analysis;
     try {
