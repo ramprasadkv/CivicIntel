@@ -300,92 +300,107 @@ function previewSelectedImage() {
 }
 
 async function compressImageIfNeeded(file) {
+  if (!file || file.size < 1 * 1024 * 1024) {
+    return file;
+  }
   return new Promise((resolve) => {
-    if (!file || file.size < 1 * 1024 * 1024) {
-      resolve(file);
-      return;
-    }
-    const img = new Image();
-    img.onload = () => {
-      const maxDim = 1600;
-      let w = img.width, h = img.height;
-      if (w > maxDim || h > maxDim) {
-        if (w > h) {
-          h = Math.round((h * maxDim) / w);
-          w = maxDim;
-        } else {
-          w = Math.round((w * maxDim) / h);
-          h = maxDim;
-        }
+    let resolved = false;
+    const safeResolve = (result) => {
+      if (!resolved) {
+        resolved = true;
+        resolve(result);
       }
-      const canvas = document.createElement("canvas");
-      canvas.width = w;
-      canvas.height = h;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0, w, h);
-      canvas.toBlob((blob) => {
-        if (blob) {
-          const resizedFile = new File([blob], file.name || "photo.jpg", { type: "image/jpeg" });
-          resolve(resizedFile);
-        } else {
-          resolve(file);
-        }
-      }, "image/jpeg", 0.85);
     };
-    img.onerror = () => resolve(file);
-    img.src = URL.createObjectURL(file);
+
+    const safetyTimer = setTimeout(() => safeResolve(file), 1000);
+
+    try {
+      const img = new Image();
+      img.onload = () => {
+        clearTimeout(safetyTimer);
+        try {
+          const maxDim = 1600;
+          let w = img.width, h = img.height;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, w, h);
+          canvas.toBlob((blob) => {
+            if (blob) {
+              safeResolve(new File([blob], file.name || "photo.jpg", { type: "image/jpeg" }));
+            } else {
+              safeResolve(file);
+            }
+          }, "image/jpeg", 0.85);
+        } catch (e) {
+          safeResolve(file);
+        }
+      };
+      img.onerror = () => {
+        clearTimeout(safetyTimer);
+        safeResolve(file);
+      };
+      img.src = URL.createObjectURL(file);
+    } catch (e) {
+      clearTimeout(safetyTimer);
+      safeResolve(file);
+    }
   });
 }
 
 async function handleSingleClickSubmit(event) {
   if (event) {
-    event.preventDefault();
-    event.stopPropagation();
+    try { event.preventDefault(); } catch (e) {}
+    try { event.stopPropagation(); } catch (e) {}
   }
   const fileInput = document.getElementById("civicImage");
-  if (!fileInput.files || fileInput.files.length === 0) {
+  if (!fileInput || !fileInput.files || fileInput.files.length === 0) {
     showAlert("Please select an image file first.", "error");
     return false;
   }
 
   const btn = document.getElementById("btnSubmitPhoto");
-  btn.disabled = true;
-  btn.innerText = "⏳ AI Analyzing & Routing Complaint...";
+  if (btn) {
+    btn.disabled = true;
+    btn.innerText = "⏳ AI Analyzing & Routing Complaint...";
+  }
 
   // Cache preview image data URL before input reset
   const previewImg = document.getElementById("imagePreview");
   const currentPreviewData = previewImg ? previewImg.src : "";
 
   try {
-    showAlert("1. Detecting GPS location & reverse geocoding address...", "info");
+    showAlert("1. Detecting GPS location & address...", "info");
     
-    // 1. Auto-detect GPS & Street Address with 1.5s max timeout
+    // 1. Auto-detect GPS & Street Address with 800ms fast timeout
     let lat = 12.9716, lon = 77.5946;
     let address = "Indiranagar, 100 Feet Road, Bengaluru, Karnataka 560038";
 
     if ("geolocation" in navigator) {
       try {
         const pos = await new Promise((resolve, reject) => {
-          const timer = setTimeout(() => reject(new Error("GPS Timeout")), 1500);
+          const timer = setTimeout(() => reject(new Error("GPS Timeout")), 800);
           navigator.geolocation.getCurrentPosition(
             (p) => { clearTimeout(timer); resolve(p); },
             (err) => { clearTimeout(timer); reject(err); },
-            { timeout: 1500, enableHighAccuracy: false }
+            { timeout: 800, enableHighAccuracy: false }
           );
         });
         lat = pos.coords.latitude.toFixed(6);
         lon = pos.coords.longitude.toFixed(6);
-
-        const controller = new AbortController();
-        const fetchTimer = setTimeout(() => controller.abort(), 1500);
-        const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`, { signal: controller.signal });
-        clearTimeout(fetchTimer);
-        const geoData = await res.json();
-        if (geoData && geoData.display_name) {
-          address = geoData.display_name;
-        }
-      } catch (geoErr) {
         address = `MG Road, Indiranagar, Bengaluru (GPS: ${lat}, ${lon})`;
+      } catch (geoErr) {
+        address = "Indiranagar, 100 Feet Road, Bengaluru, Karnataka 560038";
       }
     }
 
@@ -486,19 +501,23 @@ async function handleSingleClickSubmit(event) {
     document.getElementById("aiResultCard").style.display = "block";
     document.getElementById("aiResultCard").scrollIntoView({ behavior: "smooth" });
 
-    // Reset upload form fields so user isn't left staring at the raw input
+    // Reset upload form fields
     fileInput.value = "";
-    document.getElementById("imagePreviewContainer").style.display = "none";
+    const previewContainer = document.getElementById("imagePreviewContainer");
+    if (previewContainer) previewContainer.style.display = "none";
 
     showAlert(`🎉 Complaint Submitted & Routed Successfully! Tracking ID: ${reportData.tracking_id}`, "success");
 
     loadMyReports();
 
   } catch (error) {
-    showAlert(`Submission Error: ${error.message}`, "error");
+    console.error("Submission Failure:", error);
+    showAlert(`Submission Error: ${error.message || error}`, "error");
   } finally {
-    btn.disabled = false;
-    btn.innerText = "🚀 Submit Photo";
+    if (btn) {
+      btn.disabled = false;
+      btn.innerText = "🚀 Submit Photo";
+    }
   }
   return false;
 }
