@@ -58,7 +58,10 @@
             </div>
             <div class="form-group">
               <label>Password:</label>
-              <input type="password" id="loginPassword" placeholder="••••••••" required>
+              <div class="password-input-container">
+                <input type="password" id="loginPassword" placeholder="••••••••" required>
+                <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('loginPassword', this)" title="Show/Hide Password">👁️</button>
+              </div>
               <a href="#" onclick="toggleForgotPasswordCard(event)" style="font-size:0.85rem; color:#2563eb; text-decoration:none; display:block; margin-top:5px; text-align:right;">🔑 Forgot Password?</a>
             </div>
             <button type="submit" class="btn btn-primary">Login</button>
@@ -74,7 +77,10 @@
               </div>
               <div class="form-group">
                 <label>New Password:</label>
-                <input type="password" id="resetNewPassword" placeholder="Enter new password" required>
+                <div class="password-input-container">
+                  <input type="password" id="resetNewPassword" placeholder="Enter new password" required>
+                  <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('resetNewPassword', this)" title="Show/Hide Password">👁️</button>
+                </div>
               </div>
               <div class="flex-row">
                 <button type="submit" class="btn btn-success">Reset Password</button>
@@ -98,7 +104,17 @@
             </div>
             <div class="form-group">
               <label>Password:</label>
-              <input type="password" id="regPassword" placeholder="••••••••" required>
+              <div class="password-input-container">
+                <input type="password" id="regPassword" placeholder="••••••••" required>
+                <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('regPassword', this)" title="Show/Hide Password">👁️</button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Confirm Password:</label>
+              <div class="password-input-container">
+                <input type="password" id="regConfirmPassword" placeholder="••••••••" required>
+                <button type="button" class="toggle-password-btn" onclick="togglePasswordVisibility('regConfirmPassword', this)" title="Show/Hide Password">👁️</button>
+              </div>
             </div>
             <button type="submit" class="btn btn-secondary">Register Account</button>
           </form>

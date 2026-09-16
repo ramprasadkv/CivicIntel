@@ -179,11 +179,30 @@ async function handleLogin(event) {
   }
 }
 
+function togglePasswordVisibility(fieldId, btnElement) {
+  const input = document.getElementById(fieldId);
+  if (!input) return;
+  if (input.type === "password") {
+    input.type = "text";
+    if (btnElement) btnElement.innerText = "🙈";
+  } else {
+    input.type = "password";
+    if (btnElement) btnElement.innerText = "👁️";
+  }
+}
+
 async function handleRegister(event) {
-  event.preventDefault();
+  if (event) event.preventDefault();
   const name = document.getElementById("regName").value.trim();
   const mobile = document.getElementById("regMobile").value.trim();
   const password = document.getElementById("regPassword").value.trim();
+  const confirmPasswordInput = document.getElementById("regConfirmPassword");
+  const confirmPassword = confirmPasswordInput ? confirmPasswordInput.value.trim() : password;
+
+  if (password !== confirmPassword) {
+    showAlert("Passwords do not match! Please enter matching passwords in both fields.", "error");
+    return;
+  }
 
   try {
     const response = await fetch(`${API_BASE}/api/auth/register`, {
